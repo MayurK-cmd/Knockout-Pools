@@ -84,7 +84,7 @@ transaction.
 ## Contract (`contracts/`)
 
 **Network:** Monad Testnet (chain ID `10143`)
-**Address:** `<fill in after deploying — see migration guide>`
+**Address:** `<fill in after deploying>`
 **Explorer:** https://testnet.monadscan.com
 
 Solidity ^0.8.20 (viaIR: true). State machine per pool:
