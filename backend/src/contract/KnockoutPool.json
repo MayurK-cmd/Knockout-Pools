@@ -1,0 +1,467 @@
+{
+  "address": "0xEe39002BF9783DB5dac224Df968D0e3c5CE39a2B",
+  "network": "monadTestnet",
+  "chainId": 10143,
+  "abi": [
+    {
+      "type": "event",
+      "anonymous": false,
+      "name": "BetPlaced",
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "poolId",
+          "indexed": true
+        },
+        {
+          "type": "address",
+          "name": "participant",
+          "indexed": true
+        },
+        {
+          "type": "uint8",
+          "name": "pick",
+          "indexed": false
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "anonymous": false,
+      "name": "PayoutClaimed",
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "poolId",
+          "indexed": true
+        },
+        {
+          "type": "address",
+          "name": "participant",
+          "indexed": true
+        },
+        {
+          "type": "uint256",
+          "name": "amount",
+          "indexed": false
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "anonymous": false,
+      "name": "PoolCancelled",
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "poolId",
+          "indexed": true
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "anonymous": false,
+      "name": "PoolCreated",
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "poolId",
+          "indexed": true
+        },
+        {
+          "type": "address",
+          "name": "creator",
+          "indexed": true
+        },
+        {
+          "type": "string",
+          "name": "matchName",
+          "indexed": false
+        },
+        {
+          "type": "uint256",
+          "name": "stakeAmount",
+          "indexed": false
+        },
+        {
+          "type": "uint256",
+          "name": "joinDeadline",
+          "indexed": false
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "anonymous": false,
+      "name": "PoolFinalized",
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "poolId",
+          "indexed": true
+        },
+        {
+          "type": "uint8",
+          "name": "finalResult",
+          "indexed": false
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "anonymous": false,
+      "name": "PoolLocked",
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "poolId",
+          "indexed": true
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "anonymous": false,
+      "name": "RefundClaimed",
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "poolId",
+          "indexed": true
+        },
+        {
+          "type": "address",
+          "name": "participant",
+          "indexed": true
+        },
+        {
+          "type": "uint256",
+          "name": "amount",
+          "indexed": false
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "anonymous": false,
+      "name": "ResultDisputed",
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "poolId",
+          "indexed": true
+        },
+        {
+          "type": "address",
+          "name": "disputer",
+          "indexed": true
+        },
+        {
+          "type": "uint8",
+          "name": "theirResult",
+          "indexed": false
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "anonymous": false,
+      "name": "ResultProposed",
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "poolId",
+          "indexed": true
+        },
+        {
+          "type": "address",
+          "name": "proposer",
+          "indexed": true
+        },
+        {
+          "type": "uint8",
+          "name": "result",
+          "indexed": false
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "claimPayout",
+      "constant": false,
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "poolId"
+        }
+      ],
+      "outputs": []
+    },
+    {
+      "type": "function",
+      "name": "claimRefund",
+      "constant": false,
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "poolId"
+        }
+      ],
+      "outputs": []
+    },
+    {
+      "type": "function",
+      "name": "createPool",
+      "constant": false,
+      "payable": false,
+      "inputs": [
+        {
+          "type": "string",
+          "name": "matchName"
+        },
+        {
+          "type": "string[3]",
+          "name": "outcomeLabels"
+        },
+        {
+          "type": "uint256",
+          "name": "stakeAmount"
+        },
+        {
+          "type": "uint256",
+          "name": "joinDeadline"
+        },
+        {
+          "type": "uint256",
+          "name": "disputeWindowSeconds"
+        }
+      ],
+      "outputs": [
+        {
+          "type": "uint256",
+          "name": ""
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "disputeResult",
+      "constant": false,
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "poolId"
+        },
+        {
+          "type": "uint8",
+          "name": "yourResult"
+        }
+      ],
+      "outputs": []
+    },
+    {
+      "type": "function",
+      "name": "finalize",
+      "constant": false,
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "poolId"
+        }
+      ],
+      "outputs": []
+    },
+    {
+      "type": "function",
+      "name": "getParticipantPick",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "poolId"
+        },
+        {
+          "type": "address",
+          "name": "participant"
+        }
+      ],
+      "outputs": [
+        {
+          "type": "uint8",
+          "name": "pick"
+        },
+        {
+          "type": "bool",
+          "name": "hasJoined"
+        },
+        {
+          "type": "bool",
+          "name": "claimed"
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "getParticipants",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "poolId"
+        }
+      ],
+      "outputs": [
+        {
+          "type": "address[]",
+          "name": ""
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "getPool",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "poolId"
+        }
+      ],
+      "outputs": [
+        {
+          "type": "address",
+          "name": "creator"
+        },
+        {
+          "type": "string",
+          "name": "matchName"
+        },
+        {
+          "type": "string",
+          "name": "outcome0"
+        },
+        {
+          "type": "string",
+          "name": "outcome1"
+        },
+        {
+          "type": "string",
+          "name": "outcome2"
+        },
+        {
+          "type": "uint256",
+          "name": "stakeAmount"
+        },
+        {
+          "type": "uint256",
+          "name": "joinDeadline"
+        },
+        {
+          "type": "uint256",
+          "name": "disputeWindowSeconds"
+        },
+        {
+          "type": "uint8",
+          "name": "status"
+        },
+        {
+          "type": "uint256",
+          "name": "participantCount"
+        },
+        {
+          "type": "uint8",
+          "name": "proposedResult"
+        },
+        {
+          "type": "address",
+          "name": "resultProposer"
+        },
+        {
+          "type": "uint256",
+          "name": "proposedAt"
+        },
+        {
+          "type": "bool",
+          "name": "disputed"
+        },
+        {
+          "type": "uint8",
+          "name": "finalResult"
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "joinPool",
+      "constant": false,
+      "stateMutability": "payable",
+      "payable": true,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "poolId"
+        },
+        {
+          "type": "uint8",
+          "name": "pick"
+        }
+      ],
+      "outputs": []
+    },
+    {
+      "type": "function",
+      "name": "lockPool",
+      "constant": false,
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "poolId"
+        }
+      ],
+      "outputs": []
+    },
+    {
+      "type": "function",
+      "name": "poolCount",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [],
+      "outputs": [
+        {
+          "type": "uint256",
+          "name": ""
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "proposeResult",
+      "constant": false,
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "poolId"
+        },
+        {
+          "type": "uint8",
+          "name": "result"
+        }
+      ],
+      "outputs": []
+    }
+  ]
+}
