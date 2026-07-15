@@ -13,39 +13,39 @@ const STATUSES = ["Open", "Locked", "Dispute Window", "Finalized", "Cancelled"];
 const SPORT_KEYWORDS = {
   football: ["football", "soccer", "epl", "champions league", "premier league", "la liga", "serie a", "bundesliga"],
   cricket: ["cricket", "test match", "odi", "t20", "ipl", "ashes"],
-  "formula 1": ["formula 1", "f1", "grand prix", "gp"],
-  basketball: ["basketball", "nba", "euroleague"],
+  "formula 1": ["formula 1", "f1", "grand prix", "gp", "monaco", "silverstone", "monza", "marina bay", "abu dhabi", "ferrari", "red bull", "mercedes", "mclaren"],
+  basketball: ["basketball", "nba", "euroleague", "lakers", "celtics", "warriors", "bucks", "nuggets", "heat", "knicks", "bulls", "thunder", "mavericks"],
   tennis: ["tennis", "grand slam", "wimbledon", "us open", "australian open", "french open", "atp", "wta"],
 };
 
 function guessSport(matchName) {
-  if (!matchName) return "Football";
+  if (!matchName) return "football";
   const lower = matchName.toLowerCase();
   for (const [sport, keywords] of Object.entries(SPORT_KEYWORDS)) {
     if (keywords.some((k) => lower.includes(k))) return sport;
   }
-  return "Football";
+  return "football";
 }
 
 const sportImage = {
-  Football: "/images/football.avif",
-  Cricket: "/images/cricket.avif",
-  "Formula 1": "/images/f1.jpg",
-  Basketball: "/images/basketball.jpg",
-  Tennis: "/images/tennis.avif",
+  football: "/images/football.avif",
+  cricket: "/images/cricket.avif",
+  "formula 1": "/images/f1.jpg",
+  basketball: "/images/basketball.jpg",
+  tennis: "/images/tennis.avif",
 };
 
 const sportColor = {
-  Football: "#85e6ff",
-  Cricket: "#b9e3f9",
-  "Formula 1": "#ff8ee4",
-  Basketball: "#ffae45",
-  Tennis: "#ddd7fe",
+  football: "#85e6ff",
+  cricket: "#b9e3f9",
+  "formula 1": "#ff8ee4",
+  basketball: "#ffae45",
+  tennis: "#ddd7fe",
 };
 
 function PoolCard({ pool }) {
   const cardRef = useRef(null);
-  const imgRef = useRef(null);
+  const [imgError, setImgError] = useState(false);
   const sport = guessSport(pool.matchName);
   const deadline = formatTimeLeft(pool.joinDeadline);
   const pot = pool.stakeAmount && pool.participantCount
@@ -81,17 +81,21 @@ function PoolCard({ pool }) {
         className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:border-mona-purple/40 hover:shadow-lg transition-all cursor-pointer group"
       >
         {/* Sport image */}
-        <div className="relative h-36 sm:h-40 bg-gray-100 overflow-hidden">
-          <img
-            ref={imgRef}
-            src={imgSrc}
-            alt={sport}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            onError={(e) => {
-              e.target.style.display = "none";
-              e.target.parentElement.style.backgroundColor = `${sportColor[sport]}15`;
-            }}
-          />
+        <div className="relative h-36 sm:h-40 overflow-hidden" style={{ backgroundColor: `${sportColor[sport]}20` }}>
+          {!imgError ? (
+            <img
+              src={imgSrc}
+              alt={sport}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="font-display text-3xl font-black" style={{ color: `${sportColor[sport]}60` }}>
+                {sport === "formula 1" ? "F1" : sport.slice(0, 2).toUpperCase()}
+              </span>
+            </div>
+          )}
           {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
           {/* Status badge */}

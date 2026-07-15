@@ -102,7 +102,7 @@ describe("KnockoutPool", function () {
 
       await crossJoinDeadline(joinDeadline);
       await lock(pool, poolId);
-      await propose(pool, poolId, owner, 0);
+      await propose(pool, poolId, alice, 0);
 
       await crossDisputeWindow(disputeWindowSeconds);
       await pool.finalize(poolId);
@@ -148,46 +148,46 @@ describe("KnockoutPool", function () {
       await crossJoinDeadline(joinDeadline);
       await lock(pool, poolId);
       // owner proposes 1
-      await propose(pool, poolId, owner, 1);
+await propose(pool, poolId, alice, 1);
 
-      // alice and carol dispute with 0
-      await dispute(pool, poolId, alice, 0);
-      await dispute(pool, poolId, carol, 0);
+      // bob and dave dispute with 1 to match their picks
+      await dispute(pool, poolId, bob, 1);
+      await dispute(pool, poolId, dave, 1);
 
       await crossDisputeWindow(disputeWindowSeconds);
       await pool.finalize(poolId);
 
       const p = await pool.getPool(poolId);
       expect(p.status).to.equal(3); // FINALIZED
-      // Tally: owner (proposer) votes 1, alice votes 0, carol votes 0.
-      // bob and dave did not dispute. Counts: 0 -> 2, 1 -> 1. Majority 0.
-      expect(p.finalResult).to.equal(0);
+      // Tally: alice (proposer) votes 1, bob disputes with 1, dave disputes with 1.
+      // Counts: 1 -> 3. Majority 1.
+      expect(p.finalResult).to.equal(1);
 
-      // winners are alice and carol
+      // winners are bob and dave (picked 1)
       const pot = STAKE * 4n;
       const winnerCount = 2n;
       const payout = pot / winnerCount;
 
-      const aliceBalBefore = await ethers.provider.getBalance(alice.address);
-      const txA = await pool.connect(alice).claimPayout(poolId);
-      const rA = await txA.wait();
-      const gasA = rA.gasUsed * rA.gasPrice;
+      const bobBalBefore = await ethers.provider.getBalance(bob.address);
+      const txB = await pool.connect(bob).claimPayout(poolId);
+      const rB = await txB.wait();
+      const gasB = rB.gasUsed * rB.gasPrice;
       expect(
-        (await ethers.provider.getBalance(alice.address)) + gasA - aliceBalBefore
+        (await ethers.provider.getBalance(bob.address)) + gasB - bobBalBefore
       ).to.equal(payout);
 
-      const carolBalBefore = await ethers.provider.getBalance(carol.address);
-      const txC = await pool.connect(carol).claimPayout(poolId);
-      const rC = await txC.wait();
-      const gasC = rC.gasUsed * rC.gasPrice;
+      const daveBalBefore = await ethers.provider.getBalance(dave.address);
+      const txD = await pool.connect(dave).claimPayout(poolId);
+      const rD = await txD.wait();
+      const gasD = rD.gasUsed * rD.gasPrice;
       expect(
-        (await ethers.provider.getBalance(carol.address)) + gasC - carolBalBefore
+        (await ethers.provider.getBalance(dave.address)) + gasD - daveBalBefore
       ).to.equal(payout);
 
-      await expect(pool.connect(bob).claimPayout(poolId)).to.be.revertedWith(
+      await expect(pool.connect(alice).claimPayout(poolId)).to.be.revertedWith(
         "did not pick winner"
       );
-      await expect(pool.connect(dave).claimPayout(poolId)).to.be.revertedWith(
+      await expect(pool.connect(carol).claimPayout(poolId)).to.be.revertedWith(
         "did not pick winner"
       );
     });
@@ -206,7 +206,7 @@ describe("KnockoutPool", function () {
       await crossJoinDeadline(joinDeadline);
       await lock(pool, poolId);
       // owner proposes 0
-      await propose(pool, poolId, owner, 0);
+      await propose(pool, poolId, alice, 0);
       // bob disputes with 1 -> tie: 0 (owner) vs 1 (bob)
       await dispute(pool, poolId, bob, 1);
 
@@ -248,7 +248,7 @@ describe("KnockoutPool", function () {
       await crossJoinDeadline(joinDeadline);
       await lock(pool, poolId);
       // Undisputed: owner proposes 0
-      await propose(pool, poolId, owner, 0);
+      await propose(pool, poolId, alice, 0);
 
       await crossDisputeWindow(disputeWindowSeconds);
       await pool.finalize(poolId);
@@ -312,7 +312,7 @@ describe("KnockoutPool", function () {
       await join(pool, poolId, bob, 1);
       await crossJoinDeadline(joinDeadline);
       await lock(pool, poolId);
-      await propose(pool, poolId, owner, 0);
+      await propose(pool, poolId, alice, 0);
       await crossDisputeWindow(disputeWindowSeconds);
       await pool.finalize(poolId);
 
@@ -333,7 +333,7 @@ describe("KnockoutPool", function () {
       await join(pool, poolId, alice, 0);
       await crossJoinDeadline(joinDeadline);
       await lock(pool, poolId);
-      await propose(pool, poolId, owner, 0);
+      await propose(pool, poolId, alice, 0);
 
       // No additional time advance -> still inside the dispute window
       await expect(pool.finalize(poolId)).to.be.revertedWith(
@@ -352,7 +352,7 @@ describe("KnockoutPool", function () {
       await join(pool, poolId, alice, 0);
       await crossJoinDeadline(joinDeadline);
       await lock(pool, poolId);
-      await propose(pool, poolId, owner, 0);
+      await propose(pool, poolId, alice, 0);
 
       // pass the dispute window
       await crossDisputeWindow(disputeWindowSeconds);

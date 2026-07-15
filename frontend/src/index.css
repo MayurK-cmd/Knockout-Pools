@@ -98,6 +98,24 @@ body {
   border-radius: 3px;
 }
 
+/* Hover glow for nav buttons */
+.nav-glow {
+  position: relative;
+  transition: all 0.3s ease;
+}
+.nav-glow:hover {
+  color: #0e091c;
+}
+.nav-glow:hover::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 8px;
+  background: radial-gradient(ellipse at center, rgba(110, 84, 255, 0.12) 0%, transparent 70%);
+  z-index: -1;
+  pointer-events: none;
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: 'Geist Variable', sans-serif;

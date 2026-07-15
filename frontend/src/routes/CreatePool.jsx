@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAccount } from "wagmi";
+import { useAccount, useWaitForTransactionReceipt } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { motion } from "motion/react";
 import { useSpring, animated } from "react-spring";
 import { useCreatePool } from "../lib/useContract.js";
+import { decodeEventLog } from "viem";
+import { CONTRACT_ADDRESS, CONTRACT_ABI } from "../lib/pools.js";
 import {
   Select, SelectContent, SelectItem, SelectTrigger,
 } from "@/components/ui/select.jsx";
@@ -23,7 +25,8 @@ const SPORTS = [
 export default function CreatePool() {
   const { isConnected } = useAccount();
   const navigate = useNavigate();
-  const { create, isPending } = useCreatePool();
+  const { create, isPending, txHash } = useCreatePool();
+  const { data: receipt, isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash: txHash });
 
   const [sport, setSport] = useState("football");
   const [matchName, setMatchName] = useState("");
@@ -34,14 +37,35 @@ export default function CreatePool() {
   const [disputeWindowMin, setDisputeWindowMin] = useState("10");
   const [outcomes, setOutcomes] = useState(["Home Win", "Draw", "Away Win"]);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [createdPoolId, setCreatedPoolId] = useState(null);
 
   const [submitSpring, api] = useSpring(() => ({ scale: 1 }));
+
+  // Extract pool ID from the PoolCreated event once receipt confirms
+  useEffect(() => {
+    if (!isConfirmed || !receipt) return;
+    const poolCreatedEvent = CONTRACT_ABI.find((e) => e.name === "PoolCreated");
+    if (!poolCreatedEvent) { navigate("/"); return; }
+
+    for (const log of receipt.logs) {
+      if (log.address.toLowerCase() !== CONTRACT_ADDRESS.toLowerCase()) continue;
+      try {
+        const decoded = decodeEventLog({ abi: [poolCreatedEvent], data: log.data, topics: log.topics });
+        if (decoded.eventName === "PoolCreated") {
+          const poolId = Number(decoded.args.poolId);
+          setCreatedPoolId(poolId);
+          navigate(`/pool/${poolId}`);
+          return;
+        }
+      } catch { /* skip logs that don't match */ }
+    }
+    // Fallback: if no event found, go to pool list
+    navigate("/");
+  }, [isConfirmed, receipt, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
 
     if (!isConnected) { setError("Connect your wallet first."); return; }
     if (!matchName && !customMatch) { setError("Select or enter a match."); return; }
@@ -58,8 +82,6 @@ export default function CreatePool() {
 
     try {
       create(finalMatch, outcomes, stakeWei, deadline, disputeSeconds);
-      setSuccess("Transaction submitted! Check your wallet to confirm.");
-      setTimeout(() => navigate("/"), 2000);
     } catch (err) {
       setError(err?.shortMessage || err.message || "Transaction failed");
     }
@@ -239,21 +261,23 @@ export default function CreatePool() {
           </Field>
 
           {error && <FieldError>{error}</FieldError>}
-          {success && (
-            <p className="font-mono text-xs text-green-600 bg-green-50 border border-green-200 rounded-lg px-3 py-2">{success}</p>
+          {isConfirming && (
+            <p className="font-mono text-xs text-mona-purple bg-mona-purple/5 border border-mona-purple/20 rounded-lg px-3 py-2">
+              Transaction confirmed! Opening your pool…
+            </p>
           )}
 
           <animated.button
             type="submit"
-            disabled={isPending}
+            disabled={isPending || isConfirming}
             style={{ scale: submitSpring }}
             className={`w-full font-mono text-xs uppercase tracking-wider py-3 rounded-lg transition-all ${
-              isPending
+              isPending || isConfirming
                 ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                 : "bg-mona-purple hover:bg-mona-purple/90 text-white cursor-pointer shadow-sm hover:shadow-md"
             }`}
           >
-            {isPending ? "Confirming…" : "Create Pool"}
+            {isConfirming ? "Opening Pool…" : isPending ? "Confirm in Wallet…" : "Create Pool"}
           </animated.button>
         </form>
       )}

@@ -57,22 +57,16 @@ export async function start({ rpcUrl, contractAddress, startBlock, onCacheReady 
   provider = new ethers.JsonRpcProvider(rpcUrl);
   contract = new ethers.Contract(address, artifact.abi, provider);
 
-  // Resolve the start block:
-  //   1. explicit override (env START_BLOCK)
-  //   2. fall back to a recent block (latest - 50) — small enough to fit
-  //      in one cheap getLogs call on Alchemy's free tier. The replay is
-  //      mostly a no-op for a fresh contract; the polling loop catches
-  //      new events going forward.
-  if (typeof startBlock !== "number" || startBlock < 0) {
-    startBlock = await withRpcBackoff(() => provider.getBlockNumber())
-      .then((head) => Math.max(0, head - 50))
-      .catch(() => 0);
-  }
+  // ---- 1. Fast-path: read pools directly from the contract via view functions. ----
+  // This is much faster than scanning event logs on a rate-limited RPC.
+  await fastSyncFromContract().catch((err) => {
+    console.warn(`listener: fast-sync failed (${err.message}), falling back to replay`);
+    if (typeof startBlock === "number" && startBlock >= 0) {
+      return replayHistory(startBlock).catch(() => {});
+    }
+  });
 
-  // ---- 1. Replay past events in dependency order so cache is consistent. ----
-  await replayHistory(startBlock);
-
-  // ---- 2. Subscribe to live events. ----
+  // ---- Subscribe to live events (first tick catches up history). ----
   attachLiveHandlers();
 
   if (typeof onCacheReady === "function") onCacheReady(cache.getPoolCount());
@@ -216,10 +210,9 @@ async function withRpcBackoff(fn, { maxAttempts = 6, baseMs = 250 } = {}) {
   throw lastErr;
 }
 
-// Adaptive chunk size. Alchemy's free tier is 10 blocks per getLogs, so we
-// start there. The shrinker can take it lower, the grower can take it
-// higher (capped at 100 to stay well under any free-tier throughput cap).
-let workingChunkSize = 10;
+// Chunk size for getLogs calls. Monad's public RPC supports much larger
+// ranges than Alchemy free tier. Start at 500 blocks per request.
+let workingChunkSize = 50;
 
 function workingChunk() {
   return workingChunkSize;
@@ -246,8 +239,8 @@ function shrinkChunk(err) {
 let pollTimer = null;
 let lastPolledBlock = null;
 
-const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS || 10000);
-const POLL_WINDOW = 50; // how many recent blocks to scan each tick
+const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS || 8000);
+const POLL_WINDOW = 200; // how many recent blocks to scan each tick
 
 function attachLiveHandlers() {
   detachLiveHandlers();
@@ -261,19 +254,21 @@ function attachLiveHandlers() {
 /// directly from the frontend to the chain, this cache is read-only.
 function startPolling() {
   if (pollTimer) return;
+  let caughtUp = false;
   const tick = async () => {
     try {
       const head = await withRpcBackoff(() => provider.getBlockNumber());
       if (lastPolledBlock == null) {
-        // first tick: just remember head, no fetch
+        lastPolledBlock = head;
+        // First tick: replay history from a wide window using the chunked
+        // replay mechanism that handles rate limits gracefully.
+        const fromBlock = Math.max(0, head - 10000);
+        caughtUp = true;
+        await replayHistory(fromBlock).catch(() => {});
         lastPolledBlock = head;
         return;
       }
       const from = Math.max(lastPolledBlock + 1, head - POLL_WINDOW);
-      if (from > head) {
-        lastPolledBlock = head;
-        return;
-      }
       const iface = contract.interface;
       const handlerMap = {
         PoolCreated: onPoolCreated,
@@ -302,6 +297,8 @@ function startPolling() {
           console.error(`poll: ${parsed.name}:`, e.message);
         }
       }
+      // Auto-lock expired open pools
+      await autoLockExpiredPools(head).catch(() => {});
       lastPolledBlock = head;
     } catch (err) {
       const msg = (err?.info?.error?.message ?? err?.shortMessage ?? err?.message ?? "").toLowerCase();
@@ -415,22 +412,94 @@ function currentTimestamp() {
   }
 }
 
-async function resolveStartBlock(provider, address) {
-  try {
-    const code = await provider.getCode(address, 0);
-    if (code && code !== "0x") return 0;
-  } catch {
-    /* ignore — we'll fall through */
+async function fastSyncFromContract() {
+  // Read poolCount from the contract, then fetch each pool's data via
+  // view functions. Much faster than scanning event logs through a
+  // rate-limited public RPC.
+  if (!contract) throw new Error("contract not initialized");
+  const count = Number(await withRpcBackoff(() => contract.poolCount()));
+  console.log(`listener: fast-sync: ${count} pools on chain`);
+  for (let i = 0; i < count; i++) {
+    try {
+      const view = await withRpcBackoff(() => contract.getPool(i));
+      cache.upsertPoolFromCreated({
+        poolId: BigInt(i),
+        creator: view.creator,
+        matchName: view.matchName,
+        stakeAmount: view.stakeAmount,
+        joinDeadline: view.joinDeadline,
+      });
+      cache.patchPoolMetadata(String(i), {
+        outcomeLabels: [view.outcome0, view.outcome1, view.outcome2],
+        disputeWindowSeconds: Number(view.disputeWindowSeconds),
+      });
+      if (Number(view.status) >= 1) cache.setStatus(String(i), "locked");
+      if (Number(view.status) >= 2) {
+        cache.setProposal(String(i), Number(view.proposedResult), Number(view.proposedAt));
+      }
+      if (Number(view.status) >= 3) {
+        if (Number(view.status) === 3) cache.setFinalized(String(i), Number(view.finalResult));
+        else cache.setCancelled(String(i));
+      }
+      // Fetch participants
+      try {
+        const parts = await withRpcBackoff(() => contract.getParticipants(i));
+        for (const addr of parts) {
+          const pickData = await withRpcBackoff(() => contract.getParticipantPick(i, addr));
+          cache.addParticipant(String(i), addr, Number(pickData.pick));
+          if (pickData.claimed) cache.markClaimed(String(i), addr);
+        }
+      } catch { /* participant fetch failed, skip */ }
+      console.log(`listener: fast-sync: pool ${i} (${view.matchName}) status=${Number(view.status)}`);
+    } catch (err) {
+      console.warn(`listener: fast-sync: pool ${i} failed:`, err.message);
+    }
   }
-  // Try a binary-search for the deploy block; if that fails, fall back to
-  // a small window back from chain head.
+  console.log(`listener: fast-sync complete: ${cache.getPoolCount()} pools cached`);
+}
+
+let lockSigner = null;
+
+/// Initialize the lock signer from env var if available.
+function getLockSigner() {
+  if (lockSigner) return lockSigner;
+  const pk = process.env.LOCK_SIGNER_PRIVATE_KEY;
+  if (!pk) return null;
   try {
-    const head = await provider.getBlockNumber();
-    // Public free RPCs typically support ~1000-10000 recent blocks of logs.
-    // Use a small recent window so we don't trigger archive-mode errors.
-    return Math.max(0, head - 1000);
+    lockSigner = new ethers.Wallet(pk, provider);
+    return lockSigner;
   } catch {
-    return 0;
+    return null;
+  }
+}
+
+/// Check all cached pools for any that are past their join deadline and still
+/// open, and call lockPool on the contract using the lock signer. Since lockPool
+/// is permissionless, any wallet with a small amount of MON for gas can do this.
+async function autoLockExpiredPools(currentBlock) {
+  const signer = getLockSigner();
+  if (!signer) return;
+
+  const contractWithSigner = new ethers.Contract(artifact.address, artifact.abi, signer);
+  const now = Math.floor(Date.now() / 1000);
+
+  const allPools = cache.getAllPools();
+  for (const p of allPools) {
+    if (p.status !== "open") continue;
+    if (Number(p.joinDeadline) > now) continue;
+    try {
+      const tx = await contractWithSigner.lockPool(BigInt(p.id));
+      console.log(`auto-lock: pool ${p.id} (${p.matchName}) tx: ${tx.hash}`);
+      await tx.wait();
+      console.log(`auto-lock: pool ${p.id} confirmed`);
+    } catch (err) {
+      // Expected if another tx already locked it — polling will pick up the event
+      if (err.message?.includes("pool not open") || err.message?.includes("revert")) {
+        // Already locked, nothing to do
+      } else {
+        console.warn(`auto-lock: pool ${p.id} failed:`, err.shortMessage ?? err.message);
+      }
+    }
   }
 }
 

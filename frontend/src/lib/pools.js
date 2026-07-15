@@ -21,9 +21,28 @@ export async function fetchPoolParticipants(id) {
   return res.json();
 }
 
-export async function fetchSuggestedResult(poolId) {
-  const res = await fetch(`${BACKEND_URL}/api/pools/${poolId}/suggested-result`);
-  if (!res.ok) return null;
+export async function saveName(address, name) {
+  const res = await fetch(`${BACKEND_URL}/api/name`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ address, name }),
+  });
+  return res.ok;
+}
+
+export async function fetchNames(addresses) {
+  const res = await fetch(`${BACKEND_URL}/api/names`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ addresses }),
+  });
+  if (!res.ok) return {};
+  return res.json();
+}
+
+export async function fetchLeaderboard() {
+  const res = await fetch(`${BACKEND_URL}/api/leaderboard`);
+  if (!res.ok) return [];
   return res.json();
 }
 

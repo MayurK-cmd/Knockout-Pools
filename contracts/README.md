@@ -8,7 +8,7 @@
 |---|---|
 | **Chain** | Monad Testnet |
 | **Chain ID** | `10143` |
-| **Contract address** | [`0xEe39002BF9783DB5dac224Df968D0e3c5CE39a2B`](https://testnet.monadscan.com/address/0xEe39002BF9783DB5dac224Df968D0e3c5CE39a2B) |
+| **Contract address** | [`0x2098FA95aEcf046790056ad19C2a1AE569e52c46`](https://testnet.monadscan.com/address/0x2098FA95aEcf046790056ad19C2a1AE569e52c46) |
 | **Explorer** | [Monadscan](https://testnet.monadscan.com) |
 | **RPC** | `https://testnet-rpc.monad.xyz` |
 

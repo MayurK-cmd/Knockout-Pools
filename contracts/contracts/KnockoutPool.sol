@@ -136,6 +136,7 @@ contract KnockoutPool {
         Pool storage p = pools[poolId];
         require(p.status == PoolStatus.LOCKED, "pool not locked");
         require(result < 3, "invalid result");
+        require(p.hasJoined[msg.sender], "only participants can propose");
 
         p.proposedResult = result;
         p.resultProposer = msg.sender;

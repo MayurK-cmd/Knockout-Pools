@@ -2,7 +2,7 @@ import { useWriteContract, useReadContract } from "wagmi";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "./pools.js";
 
 export function useCreatePool() {
-  const { writeContract, isPending, data } = useWriteContract();
+  const { writeContract, isPending, data: txHash } = useWriteContract();
   const create = (matchName, outcomeLabels, stakeAmount, joinDeadline, disputeWindowSeconds) => {
     writeContract({
       address: CONTRACT_ADDRESS,
@@ -11,11 +11,11 @@ export function useCreatePool() {
       args: [matchName, outcomeLabels, BigInt(stakeAmount), BigInt(joinDeadline), BigInt(disputeWindowSeconds)],
     });
   };
-  return { create, isPending, tx: data };
+  return { create, isPending, txHash };
 }
 
 export function useJoinPool() {
-  const { writeContract, isPending, data } = useWriteContract();
+  const { writeContract, isPending, data: txHash } = useWriteContract();
   const join = (poolId, pick, stakeAmount) => {
     writeContract({
       address: CONTRACT_ADDRESS,
@@ -25,11 +25,11 @@ export function useJoinPool() {
       value: BigInt(stakeAmount),
     });
   };
-  return { join, isPending, tx: data };
+  return { join, isPending, txHash };
 }
 
 export function useLockPool() {
-  const { writeContract, isPending, data } = useWriteContract();
+  const { writeContract, isPending, data: txHash } = useWriteContract();
   const lock = (poolId) => {
     writeContract({
       address: CONTRACT_ADDRESS,
@@ -38,11 +38,11 @@ export function useLockPool() {
       args: [BigInt(poolId)],
     });
   };
-  return { lock, isPending, tx: data };
+  return { lock, isPending, txHash };
 }
 
 export function useProposeResult() {
-  const { writeContract, isPending, data } = useWriteContract();
+  const { writeContract, isPending, data: txHash } = useWriteContract();
   const propose = (poolId, result) => {
     writeContract({
       address: CONTRACT_ADDRESS,
@@ -51,11 +51,11 @@ export function useProposeResult() {
       args: [BigInt(poolId), result],
     });
   };
-  return { propose, isPending, tx: data };
+  return { propose, isPending, txHash };
 }
 
 export function useDisputeResult() {
-  const { writeContract, isPending, data } = useWriteContract();
+  const { writeContract, isPending, data: txHash } = useWriteContract();
   const dispute = (poolId, yourResult) => {
     writeContract({
       address: CONTRACT_ADDRESS,
@@ -64,11 +64,11 @@ export function useDisputeResult() {
       args: [BigInt(poolId), yourResult],
     });
   };
-  return { dispute, isPending, tx: data };
+  return { dispute, isPending, txHash };
 }
 
 export function useFinalize() {
-  const { writeContract, isPending, data } = useWriteContract();
+  const { writeContract, isPending, data: txHash } = useWriteContract();
   const finalize = (poolId) => {
     writeContract({
       address: CONTRACT_ADDRESS,
@@ -77,11 +77,11 @@ export function useFinalize() {
       args: [BigInt(poolId)],
     });
   };
-  return { finalize, isPending, tx: data };
+  return { finalize, isPending, txHash };
 }
 
 export function useClaimPayout() {
-  const { writeContract, isPending, data } = useWriteContract();
+  const { writeContract, isPending, data: txHash } = useWriteContract();
   const claim = (poolId) => {
     writeContract({
       address: CONTRACT_ADDRESS,
@@ -90,11 +90,11 @@ export function useClaimPayout() {
       args: [BigInt(poolId)],
     });
   };
-  return { claim, isPending, tx: data };
+  return { claim, isPending, txHash };
 }
 
 export function useClaimRefund() {
-  const { writeContract, isPending, data } = useWriteContract();
+  const { writeContract, isPending, data: txHash } = useWriteContract();
   const refund = (poolId) => {
     writeContract({
       address: CONTRACT_ADDRESS,
@@ -103,7 +103,7 @@ export function useClaimRefund() {
       args: [BigInt(poolId)],
     });
   };
-  return { refund, isPending, tx: data };
+  return { refund, isPending, txHash };
 }
 
 export function usePoolCount() {
